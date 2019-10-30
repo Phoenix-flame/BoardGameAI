@@ -294,11 +294,38 @@ class HumanPlayer(Game, Player):
             except Exception as e:
                 print("Invalid choice, try again.")
 
+class MinimaxPlayer(Game, Player):
+    def __init__(self):
+        super().__init__()
+        self.name = None
+        self.side = None
+
+    def initialize(self, side):
+        self.name = "Minimax"
+        self.side = side
+
+    def getMove(self, board):
+        # return argmax MinValue(Result(board, action))
+        pass
+
+
+    def MiniMaxDecision(self):
+        pass
+
+    def MaxValue(self, board):  # returns a utility value
+        pass
+
+    def MinValue(self, board):  # returns a utility value
+        pass
+
+    def getSuccessors(self, board):
+        moves = self.generateMoves(board, self.side)
+        return moves
 
 if __name__ == '__main__':
-    game = Game(4)
-    human1 = HumanPlayer(4)
+    game = Game(8)
+    human1 = HumanPlayer(8)
     human1.initialize('B')
-    human2 = HumanPlayer(4)
+    human2 = HumanPlayer(8)
     human2.initialize('W')
     game.playOneGame(human1, human2, True)
