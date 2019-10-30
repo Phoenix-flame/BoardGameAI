@@ -1,6 +1,7 @@
 import random
 import copy
-
+import numpy as np
+import time
 
 class GameError(AttributeError):
     pass
@@ -295,37 +296,98 @@ class HumanPlayer(Game, Player):
                 print("Invalid choice, try again.")
 
 class MinimaxPlayer(Game, Player):
-    def __init__(self):
-        super().__init__()
-        self.name = None
-        self.side = None
 
     def initialize(self, side):
         self.name = "Minimax"
         self.side = side
 
     def getMove(self, board):
+        moves = self.generateMoves(board, self.side)
+        # board must be untouched, so deepcopy of board will be passed to decision algorithm
+        action = self.MiniMaxDecision(copy.deepcopy(board))
+        return action
+
+
+    def MiniMaxDecision(self, board):  # Analyzing available actions, returns the best action
         # return argmax MinValue(Result(board, action))
-        pass
+        global count
+        count = 0
+        actions = []
+        for action in self.generateMoves(board, self.side):
+            actions.append([action, self.MinValue(self.Result(board, action, self.side))])
 
+        n = len(actions)
+        if n == 0:
+            print("You must concede")
+            return []
+        print(count)
+        tmp = sorted(actions, key=self.getKey)[-1][0]
+        return tmp
 
-    def MiniMaxDecision(self):
-        pass
+    def getKey(self, item):
+        return item[1]
 
     def MaxValue(self, board):  # returns a utility value
-        pass
+        side = self.side
+        if self.TerminalTest(board, side):
+            return self.Utility(board)
+        v = float("-inf")
+        for a in self.getSuccessors(board, side):
+            v = max([v, self.MinValue(self.Result(board, a, side))])
+        return int(v)
 
     def MinValue(self, board):  # returns a utility value
-        pass
+        side = self.opponent(self.side)
+        if self.TerminalTest(board, side):
+            return self.Utility(board)
+        v = float("inf")
 
-    def getSuccessors(self, board):
+        for a in self.getSuccessors(board, side):
+            v = min([v, self.MaxValue(self.Result(board, a, side))])
+        return int(v)
+
+    def getSuccessors(self, board, player):  # get available actions in each situation
+        return self.generateMoves(board, player)
+
+    def Result(self, board, action, player):  # it takes an action and returns board after doing that action
+        global count
+        count += 1
+        return self.nextBoard(board, player, action)
+
+    def TerminalTest(self, board, player):  # check if game is done or not
+        moves = self.generateMoves(board, player)
+        if len(moves) == 0:
+            return True
+        return False
+
+    def Utility(self, board):  # Scores terminal states
         moves = self.generateMoves(board, self.side)
-        return moves
+        if len(moves) == 0:
+            return -100
+        return 100
+
+
+def printBoard(self, board):
+        result = "  "
+        for i in range(self.size):
+            result += str(i) + " "
+        result += "\n"
+        for i in range(self.size):
+            result += str(i) + " "
+            for j in range(self.size):
+                result += str(board[i][j]) + " "
+            result += "\n"
+        print(result)
+
+
+count = 0
 
 if __name__ == '__main__':
-    game = Game(8)
-    human1 = HumanPlayer(8)
-    human1.initialize('B')
-    human2 = HumanPlayer(8)
-    human2.initialize('W')
-    game.playOneGame(human1, human2, True)
+    n = 4
+
+    game = Game(n)
+    brain1 = MinimaxPlayer(n)
+    brain1.initialize('B')
+    brain2 = MinimaxPlayer(n)
+    brain2.initialize('W')
+    game.playOneGame(brain1, brain2, True)
