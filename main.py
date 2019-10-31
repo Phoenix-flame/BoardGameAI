@@ -494,6 +494,11 @@ class AlphaBetaPlayer(Game, Player):
         win_rate = 50 * OwnMoves - 50 * OppMoves
         lose_rate = OppMoves / total_moves
 
+        if (OwnMoves + OppMoves) != 0:
+            return 100 * (2*OwnMoves - OppMoves) / total_moves
+        else:
+            return 0
+
         # if OwnMoves >= OppMoves:
         #     return 10 * OwnMoves - 5 * OppMoves
         # elif OppMoves > OwnMoves:
