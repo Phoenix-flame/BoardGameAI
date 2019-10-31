@@ -481,7 +481,7 @@ class AlphaBetaPlayer(Game, Player):
         return float("inf")
 
     def CutoffTest(self, depth):
-        if depth >= 4:
+        if depth >= 3:
             return True
         return False
 
@@ -491,9 +491,17 @@ class AlphaBetaPlayer(Game, Player):
         OwnMoves = len(self.generateMoves(board, self.side))
         OppMoves = len(self.getSuccessors(board, self.opponent(self.side)))
         total_moves = OwnMoves + OppMoves
-        win_rate = 100 * OwnMoves - 50 * OppMoves
+        win_rate = 50 * OwnMoves - 50 * OppMoves
         lose_rate = OppMoves / total_moves
-        return win_rate * 1 + lose_rate * (-0)
+
+        # if OwnMoves >= OppMoves:
+        #     return 10 * OwnMoves - 5 * OppMoves
+        # elif OppMoves > OwnMoves:
+        #     return 5 * OwnMoves - 10 * OppMoves
+        # # else:
+        # #     return 0
+
+        return win_rate * 1 - lose_rate*2
 
 
 
