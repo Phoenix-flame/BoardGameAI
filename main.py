@@ -367,27 +367,112 @@ class MinimaxPlayer(Game, Player):
         return 100
 
 
-def printBoard(self, board):
-        result = "  "
-        for i in range(self.size):
-            result += str(i) + " "
-        result += "\n"
-        for i in range(self.size):
-            result += str(i) + " "
-            for j in range(self.size):
-                result += str(board[i][j]) + " "
-            result += "\n"
-        print(result)
 
+
+
+class AlphaBetaPlayer(Game, Player):
+
+    def initialize(self, side):
+        self.name = "AlphaBeta"
+        self.side = side
+
+    def getMove(self, board):
+        moves = self.generateMoves(board, self.side)
+        # board must be untouched, so deepcopy of board will be passed to decision algorithm
+        action = self.MiniMaxDecision(copy.deepcopy(board))
+        return action
+
+
+    def MiniMaxDecision(self, board):  # Analyzing available actions, returns the best action
+        # return argmax MinValue(Result(board, action))
+        global count
+        count = 0
+        actions = []
+        for action in self.generateMoves(board, self.side):
+            actions.append([action, self.MinValue(self.Result(board, action, self.side), float("-inf"), float("inf"), 0)])
+
+        n = len(actions)
+        if n == 0:
+            print("You must concede")
+            return []
+        print(count)
+        tmp = sorted(actions, key=self.getKey)[-1][0]
+        return tmp
+
+    def getKey(self, item):
+        return item[1]
+
+    def MaxValue(self, board, a, b, depth):  # returns a utility value
+        side = self.side
+        if self.CutoffTest(board, depth):
+            return self.EvalFunc(board, depth, side)
+        v = float("-inf")
+        for action in self.getSuccessors(board, side):
+            v = max([v, self.MinValue(self.Result(board, action, side), a, b, depth + 1)])
+            if v >= b:
+                return v
+            a = max([a, v])
+        return v
+
+    def MinValue(self, board, a, b, depth):  # returns a utility value
+        side = self.opponent(self.side)
+        if self.CutoffTest(board, depth):
+            return self.EvalFunc(board, depth, side)
+        v = float("inf")
+
+        for action in self.getSuccessors(board, side):
+            v = min([v, self.MaxValue(self.Result(board, action, side), a, b, depth + 1)])
+            if v <= a:
+                return v
+            b = min([b, v])
+        return v
+
+    def getSuccessors(self, board, player):  # get available actions in each situation
+        return self.generateMoves(board, player)
+
+    def Result(self, board, action, player):  # it takes an action and returns board after doing that action
+        global count
+        count += 1
+        return self.nextBoard(board, player, action)
+
+    def TerminalTest(self, board, player):  # check if game is done or not
+        moves = self.generateMoves(board, player)
+        if len(moves) == 0:
+            return True
+        return False
+
+    def Utility(self, board, depth):  # Scores terminal states
+        moves = self.generateMoves(board, self.side)
+        if len(moves) == 0:
+            return float("-inf")
+        return float("inf")
+
+    def CutoffTest(self, board, depth):
+        if depth >= 4:
+            return True
+        return False
+
+    def EvalFunc(self, board, depth, player):
+        if self.TerminalTest(board, player):
+            return self.Utility(board, depth)
+        OwnMoves = len(self.generateMoves(board, self.side))
+        OppMoves = len(self.getSuccessors(board, self.opponent(self.side)))
+        total_moves = OwnMoves + OppMoves
+        win_rate = OwnMoves / total_moves
+        lose_rate = OppMoves / total_moves
+        if player == self.side:
+            return win_rate
+        else:
+            return lose_rate
 
 count = 0
 
 if __name__ == '__main__':
-    n = 4
+    n = 7
 
     game = Game(n)
-    brain1 = MinimaxPlayer(n)
+    brain1 = AlphaBetaPlayer(n)
     brain1.initialize('B')
-    brain2 = MinimaxPlayer(n)
+    brain2 = AlphaBetaPlayer(n)
     brain2.initialize('W')
     game.playOneGame(brain1, brain2, True)
