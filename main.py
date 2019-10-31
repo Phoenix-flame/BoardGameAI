@@ -301,9 +301,10 @@ class MinimaxPlayer(Game, Player):
         self.side = side
 
     def getMove(self, board):
-        moves = self.generateMoves(board, self.side)
+        tic = time.time()
         # board must be untouched, so deepcopy of board will be passed to decision algorithm
         action = self.MiniMaxDecision(copy.deepcopy(board))
+        print(self.name, "Time:", time.time() - tic)
         return action
 
 
@@ -313,37 +314,38 @@ class MinimaxPlayer(Game, Player):
         count = 0
         actions = []
         for action in self.generateMoves(board, self.side):
-            actions.append([action, self.MinValue(self.Result(board, action, self.side))])
+            actions.append([action, self.MinValue(self.Result(board, action, self.side), 0)])
 
         n = len(actions)
         if n == 0:
             print("You must concede")
             return []
-        print(count)
-        tmp = sorted(actions, key=self.getKey)[-1][0]
-        return tmp
+        print("Seen States:", count)
+        tmp = sorted(actions, key=self.getKey)[-1]
+        print("Win rate:", tmp[1])
+        return tmp[0]
 
     def getKey(self, item):
         return item[1]
 
-    def MaxValue(self, board):  # returns a utility value
+    def MaxValue(self, board, depth):  # returns a utility value
         side = self.side
-        if self.TerminalTest(board, side):
-            return self.Utility(board)
+        if self.CutoffTest(depth):
+            return self.EvalFunc(board, side)
         v = float("-inf")
         for a in self.getSuccessors(board, side):
-            v = max([v, self.MinValue(self.Result(board, a, side))])
-        return int(v)
+            v = max([v, self.MinValue(self.Result(board, a, side), depth + 1)])
+        return v
 
-    def MinValue(self, board):  # returns a utility value
+    def MinValue(self, board, depth):  # returns a utility value
         side = self.opponent(self.side)
-        if self.TerminalTest(board, side):
-            return self.Utility(board)
+        if self.CutoffTest(depth):
+            return self.EvalFunc(board, side)
         v = float("inf")
 
         for a in self.getSuccessors(board, side):
-            v = min([v, self.MaxValue(self.Result(board, a, side))])
-        return int(v)
+            v = min([v, self.MaxValue(self.Result(board, a, side), depth + 1)])
+        return v
 
     def getSuccessors(self, board, player):  # get available actions in each situation
         return self.generateMoves(board, player)
@@ -353,19 +355,36 @@ class MinimaxPlayer(Game, Player):
         count += 1
         return self.nextBoard(board, player, action)
 
-    def TerminalTest(self, board, player):  # check if game is done or not
-        moves = self.generateMoves(board, player)
-        if len(moves) == 0:
+    def TerminalTest(self, board):  # check if game is done or not
+        OwnMoves = len(self.generateMoves(board, self.side))
+        OppMoves = len(self.generateMoves(board, self.opponent(self.side)))
+        if OwnMoves == 0 or OppMoves == 0:
             return True
         return False
 
     def Utility(self, board):  # Scores terminal states
-        moves = self.generateMoves(board, self.side)
-        if len(moves) == 0:
-            return -100
-        return 100
+        OwnMoves = len(self.generateMoves(board, self.side))
+        OppMoves = len(self.generateMoves(board, self.opponent(self.side)))
+        if OwnMoves == 0 and OppMoves != 0:
+            return float("-inf")
+        elif OppMoves == 0 and OwnMoves == 0:
+            return 0.0
+        return float("inf")
 
+    def CutoffTest(self, depth):
+        if depth >= 2:
+            return True
+        return False
 
+    def EvalFunc(self, board, player):
+        if self.TerminalTest(board):
+            return self.Utility(board)
+        OwnMoves = len(self.generateMoves(board, self.side))
+        OppMoves = len(self.getSuccessors(board, self.opponent(self.side)))
+        total_moves = OwnMoves + OppMoves
+        win_rate = 100 * OwnMoves - 50 * OppMoves
+        lose_rate = OppMoves / total_moves
+        return win_rate * 1 + lose_rate * (-0)
 
 
 
@@ -374,10 +393,17 @@ class AlphaBetaPlayer(Game, Player):
     def initialize(self, side):
         self.name = "AlphaBeta"
         self.side = side
+        self.max_time = 0
 
     def getMove(self, board):
+        tic = time.time()
         # board must be untouched, so deepcopy of board will be passed to decision algorithm
-        return self.MiniMaxDecision(copy.deepcopy(board))
+        tmp = self.MiniMaxDecision(copy.deepcopy(board))
+        toc = time.time()
+        print(self.name, "Time:", toc - tic)
+        if toc - tic > self.max_time:
+            self.max_time = toc - tic
+        return tmp
 
     def checkEndgame(self, actions):
         n = len(actions)
@@ -397,9 +423,9 @@ class AlphaBetaPlayer(Game, Player):
         if self.checkEndgame(actions):
             return []
 
-        print('Seen results:', count)
+        print('Seen States:', count)
         tmp = sorted(actions, key=self.getKey)[-1]
-        print('Win Rate:', tmp[1])
+        print('Win rate:', tmp[1])
         return tmp[0]
 
     def getKey(self, item):
@@ -407,7 +433,7 @@ class AlphaBetaPlayer(Game, Player):
 
     def MaxValue(self, board, a, b, depth):  # returns a utility value
         side = self.side
-        if self.CutoffTest(board, depth):
+        if self.CutoffTest(depth):
             return self.EvalFunc(board, side)
         v = float("-inf")
         for action in self.getSuccessors(board, side):
@@ -419,7 +445,7 @@ class AlphaBetaPlayer(Game, Player):
 
     def MinValue(self, board, a, b, depth):  # returns a utility value
         side = self.opponent(self.side)
-        if self.CutoffTest(board, depth):
+        if self.CutoffTest(depth):
             return self.EvalFunc(board, side)
         v = float("inf")
 
@@ -454,8 +480,8 @@ class AlphaBetaPlayer(Game, Player):
             return 0.0
         return float("inf")
 
-    def CutoffTest(self, board, depth):
-        if depth >= 5:
+    def CutoffTest(self, depth):
+        if depth >= 4:
             return True
         return False
 
@@ -465,13 +491,11 @@ class AlphaBetaPlayer(Game, Player):
         OwnMoves = len(self.generateMoves(board, self.side))
         OppMoves = len(self.getSuccessors(board, self.opponent(self.side)))
         total_moves = OwnMoves + OppMoves
-        win_rate = OwnMoves - OppMoves
+        win_rate = 100 * OwnMoves - 50 * OppMoves
         lose_rate = OppMoves / total_moves
-        if player == self.side:
-            # print(win_rate * 100)
-            return win_rate * 100
-        else:
-            return lose_rate * 100
+        return win_rate * 1 + lose_rate * (-0)
+
+
 
 
     def print(self, board):
@@ -488,11 +512,12 @@ class AlphaBetaPlayer(Game, Player):
 count = 0
 
 if __name__ == '__main__':
-    n = 6
+    n = 8
 
     game = Game(n)
     brain1 = AlphaBetaPlayer(n)
     brain1.initialize('B')
-    brain2 = HumanPlayer(n)
+    brain2 = MinimaxPlayer(n)
     brain2.initialize('W')
     game.playOneGame(brain1, brain2, True)
+    print(brain1.max_time, 's')
