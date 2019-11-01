@@ -170,6 +170,8 @@ class Game:
                 print("player B's turn")
             move = p1.getMove(self.board)
             if not move:
+                p1.losses += 1
+                p2.wins += 1
                 print("Game over")
                 return 'W'
             try:
@@ -185,6 +187,8 @@ class Game:
                 print("player W's turn")
             move = p2.getMove(self.board)
             if not move:
+                p2.losses += 1
+                p1.wins += 1
                 print("Game over")
                 return 'B'
             try:
@@ -302,14 +306,12 @@ class MinimaxPlayer(Game, Player):
     def initialize(self, side):
         self.name = "Minimax"
         self.side = side
-        self.graph = pgv.AGraph(directed=True)
-        self.c = 0
 
     def getMove(self, board):
         tic = time.time()
         # board must be untouched, so deepcopy of board will be passed to decision algorithm
         action = self.MiniMaxDecision(copy.deepcopy(board))
-        print(self.name, "Time:", time.time() - tic)
+        # print(self.name, "Time:", time.time() - tic)
         return action
 
 
@@ -319,56 +321,39 @@ class MinimaxPlayer(Game, Player):
         count = 0
         actions = []
         for action in self.generateMoves(board, self.side):
-            self.graph.add_node(str(action) + str(0), color='blue')
-            actions.append([action, self.MinValue(self.Result(board, action, self.side), 0, str(action))])
+            actions.append([action, self.MinValue(self.Result(board, action, self.side), 0)])
 
         n = len(actions)
         if n == 0:
-            print("You must concede")
+            # print("You must concede")
             return []
-        print("Seen States:", count)
+        # print("Seen States:", count)
         tmp = sorted(actions, key=self.getKey)[-1]
-        print("Win rate:", tmp[1])
-        # write to a dot file
-        self.graph.write('test.dot')
-
-        # create a png file
-        self.graph.layout(prog='dot')  # use dot
-        self.graph.draw('file' + str(self.c) + '.png')
-        self.c += 1
-        self.graph = pgv.AGraph(directed=True)
+        # print("Win rate:", tmp[1])
         return tmp[0]
 
     def getKey(self, item):
         return item[1]
 
-    def MaxValue(self, board, depth, act):  # returns a utility value
+    def MaxValue(self, board, depth):  # returns a utility value
         side = self.side
         if self.CutoffTest(depth):
             eval = self.EvalFunc(board, side)
-            self.graph.add_node(act + str(eval), color='green')
-            self.graph.add_edge(act + str(depth), act + str(eval))
             return eval
         v = float("-inf")
         for a in self.getSuccessors(board, side):
-            self.graph.add_node(act + str(a) + str(depth + 1), color='blue')
-            self.graph.add_edge(act + str(depth), act + str(a) + str(depth + 1))
-            v = max([v, self.MinValue(self.Result(board, a, side), depth + 1, act  + str(a))])
+            v = max([v, self.MinValue(self.Result(board, a, side), depth + 1)])
         return v
 
-    def MinValue(self, board, depth, act):  # returns a utility value
+    def MinValue(self, board, depth):  # returns a utility value
         side = self.opponent(self.side)
         if self.CutoffTest(depth):
             eval = self.EvalFunc(board, side)
-            self.graph.add_node(act + str(eval), color='green')
-            self.graph.add_edge(act + str(depth), act + str(eval))
             return eval
         v = float("inf")
 
         for a in self.getSuccessors(board, side):
-            self.graph.add_node(act + str(a) + str(depth + 1), color='red')
-            self.graph.add_edge(act + str(depth), act + str(a) + str(depth + 1))
-            v = min([v, self.MaxValue(self.Result(board, a, side), depth + 1, act + str(a))])
+            v = min([v, self.MaxValue(self.Result(board, a, side), depth + 1)])
         return v
 
     def getSuccessors(self, board, player):  # get available actions in each situation
@@ -416,8 +401,6 @@ class AlphaBetaPlayer(Game, Player):
         self.name = "AlphaBeta"
         self.side = side
         self.max_time = 0
-        self.graph = pgv.AGraph(directed=True)
-        self.c = 0
 
     def getMove(self, board):
         tic = time.time()
@@ -427,15 +410,6 @@ class AlphaBetaPlayer(Game, Player):
         print(self.name, "Time:", toc - tic)
         if toc - tic > self.max_time:
             self.max_time = toc - tic
-
-        # write to a dot file
-        self.graph.write('alpha.dot')
-
-        # create a png file
-        self.graph.layout(prog='dot')  # use dot
-        self.graph.draw('alpha' + str(self.c) + '.png')
-        self.c += 1
-        self.graph = pgv.AGraph(directed=True)
         return tmp
 
     def checkEndgame(self, actions):
@@ -451,8 +425,7 @@ class AlphaBetaPlayer(Game, Player):
         count = 0
         actions = []
         for action in self.generateMoves(board, self.side):
-            self.graph.add_node(str(action) + str(0), color='blue')
-            actions.append([action, self.MinValue(self.Result(board, action, self.side), float("-inf"), float("inf"), 0, str(action))])
+            actions.append([action, self.MinValue(self.Result(board, action, self.side), float("-inf"), float("inf"), 0)])
 
         if self.checkEndgame(actions):
             return []
@@ -465,36 +438,28 @@ class AlphaBetaPlayer(Game, Player):
     def getKey(self, item):
         return item[1]
 
-    def MaxValue(self, board, a, b, depth, act):  # returns a utility value
+    def MaxValue(self, board, a, b, depth):  # returns a utility value
         side = self.side
         if self.CutoffTest(depth):
             eval = self.EvalFunc(board, side)
-            self.graph.add_node(act + str(eval), color='green')
-            self.graph.add_edge(act + str(depth), act + str(eval))
             return eval
         v = float("-inf")
         for action in self.getSuccessors(board, side):
-            self.graph.add_node(act + str(action) + str(depth + 1), color='blue')
-            self.graph.add_edge(act + str(depth), act + str(action) + str(depth + 1))
-            v = max([v, self.MinValue(self.Result(board, action, side), a, b, depth + 1, act + str(action))])
+            v = max([v, self.MinValue(self.Result(board, action, side), a, b, depth + 1)])
             if v >= b:
                 return v
             a = max([a, v])
         return v
 
-    def MinValue(self, board, a, b, depth, act):  # returns a utility value
+    def MinValue(self, board, a, b, depth):  # returns a utility value
         side = self.opponent(self.side)
         if self.CutoffTest(depth):
             eval = self.EvalFunc(board, side)
-            self.graph.add_node(act + str(eval), color='green')
-            self.graph.add_edge(act + str(depth), act + str(eval))
             return eval
         v = float("inf")
 
         for action in self.getSuccessors(board, side):
-            self.graph.add_node(act + str(action) + str(depth + 1), color='red')
-            self.graph.add_edge(act + str(depth), act + str(action) + str(depth + 1))
-            v = min([v, self.MaxValue(self.Result(board, action, side), a, b, depth + 1, act + str(action))])
+            v = min([v, self.MaxValue(self.Result(board, action, side), a, b, depth + 1)])
             if v <= a:
                 return v
             b = min([b, v])
@@ -536,8 +501,7 @@ class AlphaBetaPlayer(Game, Player):
         win_rate = 50 * OwnMoves - 50 * OppMoves
         lose_rate = OppMoves / total_moves
 
-        if (OwnMoves + OppMoves) != 0:
-            return 100 * (OwnMoves - OppMoves) / total_moves
+        return 100 * (OwnMoves - OppMoves) / total_moves
 
 
 
@@ -556,16 +520,34 @@ class AlphaBetaPlayer(Game, Player):
 count = 0
 
 if __name__ == '__main__':
-    n = 4
+    n = 8
 
     game = Game(n)
-    brain1 = MinimaxPlayer(n)
+    brain1 = AlphaBetaPlayer(n)
     brain1.initialize('B')
-    brain2 = AlphaBetaPlayer(n)
+    brain2 = MinimaxPlayer(n)
     brain2.initialize("W")
+    brain3 = SimplePlayer(n)
+    brain3.initialize("W")
+    brain4 = RandomPlayer(n)
+    brain4.initialize("W")
+    brain5 = AlphaBetaPlayer(n)
+    brain5.initialize("W")
 
-    game.playOneGame(brain1, brain2, True)
+    opponents = [brain5, brain4, brain3, brain2]
+    while opponents:
+        opp = opponents.pop()
+        winner = game.playOneGame(brain1, opp, False)
+        print("Alpha" if winner is "B" else opp.name, "is winner")
+        print(brain1.max_time, 's')
+        brain1.max_time = 0
+    print('Alpha wins:', brain1.wins)
+    print('Alpha losses:', brain1.losses)
 
-    print(brain1.max_time, 's')
-    print(brain1.wins)
-    print(brain1.losses)
+    # my_brain = HumanPlayer(n)
+    # my_brain.initialize("W")
+    # winner = game.playOneGame(brain1, my_brain, True)
+    # print("Winner is:", "You" if winner is "W" else brain1.name)
+
+
+
