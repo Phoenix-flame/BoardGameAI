@@ -3,8 +3,6 @@ import copy
 import numpy as np
 import time
 
-import pygraphviz as pgv
-
 
 class GameError(AttributeError):
     pass
@@ -603,11 +601,11 @@ if __name__ == '__main__':
     game = Game(n)
     brain1 = AlphaBetaPlayer(n, 4, show=False)
     brain1.initialize('B')
-    brain2 = MinimaxPlayer(n, 3)
+    brain2 = RandomPlayer(n)
     brain2.initialize("W")
 
 
-    game.playNGames(10, brain1, brain2, False)
+    game.playNGames(50, brain1, brain2, False)
 
     print("Alpha wins:", brain1.wins)
     print("Alpha losses:", brain1.losses)
