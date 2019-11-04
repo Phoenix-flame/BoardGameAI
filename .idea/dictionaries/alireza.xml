@@ -4,6 +4,7 @@
       <w>argmax</w>
       <w>minima</w>
       <w>minimax</w>
+      <w>winrate</w>
     </words>
   </dictionary>
 </component>
